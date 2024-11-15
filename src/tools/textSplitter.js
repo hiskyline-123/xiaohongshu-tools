@@ -67,9 +67,9 @@ class TextSplitter {
    * @param {string} filename - 输入文件名
    * @returns {string} 文件内容
    */
-  readTextFromFile(filename) {
+  readTextFromFile(filename, customInputPath = null) {
     try {
-      const filePath = this.getInputPath(filename);
+      const filePath = customInputPath || path.join(__dirname, `../input/${this.toolName}`, filename);
       return fs.readFileSync(filePath, 'utf8');
     } catch (error) {
       console.error('读取文本文件失败:', error);
@@ -122,20 +122,22 @@ class TextSplitter {
    * @param {string} filename - 输出文件名
    * @param {string} title - 文章标题
    */
-  async writeResultToCSV(pages, filename, title) {
+  writeResultToCSV(pages, filename, title, customOutputPath = null) {
     try {
-      const outputPath = this.getOutputPath(filename);
+      const outputPath = customOutputPath || this.getOutputPath(filename);
       const csvContent = [
-        config.csvHeaders.join(','), // 写入表头
+        config.csvHeaders.join(','),
         ...pages.map((content, index) => 
-          `${index + 1},"${title.replace(/"/g, '""')}","${content.replace(/"/g, '""')}"` // 处理内容中的双引号
+          `${index + 1},"${title.replace(/"/g, '""')}","${content.replace(/"/g, '""')}"`
         )
       ].join('\n');
 
       fs.writeFileSync(outputPath, csvContent, 'utf8');
       console.log(`分割结果已保存到: ${outputPath}`);
+      return path.basename(outputPath);
     } catch (error) {
       console.error('保存分割结果失败:', error);
+      throw error;
     }
   }
 
@@ -239,63 +241,29 @@ class TextSplitter {
    * @returns {Object|Object[]} 处理结果或结果数组
    */
   async run(options = {}) {
-    const { filename } = options;
-    
-    if (!filename) {
-      const allFiles = this.getInputFiles();
-      console.log(`发现 ${allFiles.length} 个文件待处理:`, allFiles);
-      
-      const results = [];
-      for (const file of allFiles) {
-        try {
-          if (!this.validateFilename(file)) {
-            console.warn(`文件名 ${file} 不符合命名规范，但仍继续处理`);
-          }
-          
-          const rawContent = this.readTextFromFile(file);
-          if (!rawContent) {
-            console.warn(`文件 ${file} 内容为空，跳过处理`);
-            continue;
-          }
+    const { filename, inputPath, outputPath } = options;
 
-          const { title, content } = this.extractTitleAndContent(rawContent);
-          const pages = this.splitText(content, options);
-          const outputFilename = this.generateOutputFilename(file);
-          await this.writeResultToCSV(pages, outputFilename, title);
-          
-          results.push({
-            inputFile: file,
-            outputFile: outputFilename,
-            title,
-            pageCount: pages.length
-          });
-        } catch (error) {
-          console.error(`处理文件 ${file} 失败:`, error);
-        }
+    try {
+      const rawContent = this.readTextFromFile(filename, inputPath);
+      if (!rawContent) {
+        throw new Error('文件内容为空');
       }
-      return results;
-    }
-    
-    if (!this.validateFilename(filename)) {
-      console.warn(`文件名 ${filename} 不符合命名规范，但仍继续处理`);
-    }
 
-    const rawContent = this.readTextFromFile(filename);
-    if (!rawContent) {
-      throw new Error('文件内容为空');
+      const { title, content } = this.extractTitleAndContent(rawContent);
+      const pages = this.splitText(content, options);
+      const outputFilename = this.generateOutputFilename(filename);
+      const finalOutputFile = await this.writeResultToCSV(pages, outputFilename, title, outputPath);
+
+      return {
+        inputFile: filename,
+        outputFile: finalOutputFile,
+        title,
+        pageCount: pages.length
+      };
+    } catch (error) {
+      console.error('处理文件失败:', error);
+      throw error;
     }
-
-    const { title, content } = this.extractTitleAndContent(rawContent);
-    const pages = this.splitText(content, options);
-    const outputFilename = this.generateOutputFilename(filename);
-    await this.writeResultToCSV(pages, outputFilename, title);
-
-    return {
-      inputFile: filename,
-      outputFile: outputFilename,
-      title,
-      pageCount: pages.length
-    };
   }
 }
 

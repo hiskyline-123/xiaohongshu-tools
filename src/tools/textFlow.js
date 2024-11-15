@@ -42,9 +42,9 @@ class TextFlow {
     }
   }
 
-  readTextFromFile(filename) {
+  readTextFromFile(filename, customInputPath = null) {
     try {
-      const filePath = path.join(__dirname, `../input/${this.toolName}`, filename);
+      const filePath = customInputPath || path.join(__dirname, `../input/${this.toolName}`, filename);
       return fs.readFileSync(filePath, 'utf8');
     } catch (error) {
       console.error('读取文本文件失败:', error);
@@ -52,10 +52,10 @@ class TextFlow {
     }
   }
 
-  writeResultToFile(content, inputFilename) {
+  writeResultToFile(content, inputFilename, customOutputPath = null) {
     try {
       const outputFilename = inputFilename.replace('.txt', '_processed.txt');
-      const outputPath = path.join(__dirname, `../output/${this.toolName}`, outputFilename);
+      const outputPath = customOutputPath || path.join(__dirname, `../output/${this.toolName}`, outputFilename);
       fs.writeFileSync(outputPath, content, 'utf8');
       console.log(`处理结果已保存到: ${outputPath}`);
       return outputFilename;
@@ -133,43 +133,28 @@ class TextFlow {
   }
 
   async run(options = {}) {
-    const { filename, variables } = options;
-    const results = [];
+    const { filename, inputPath, outputPath, config } = options;
+    
+    if (config) {
+      this.prompts = config.prompts || this.prompts;
+    }
 
     try {
-      const files = filename ? [filename] : this.getInputFiles();
-      console.log(colors.yellow(`\n发现 ${files.length} 个文件待处理:`));
-      console.log(colors.gray(files.join('\n')));
-
-      const totalBar = this.multibar.create(files.length, 0, { status: '开始处理文件...' });
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        totalBar.update(i, { status: `处理文件: ${file}` });
-
-        const content = this.readTextFromFile(file);
-        if (!content) {
-          console.warn(colors.yellow(`\n警告: 文件 ${file} 内容为空，跳过处理`));
-          continue;
-        }
-
-        const processedContent = await this.processWithPrompts(content, variables);
-        const outputFile = this.writeResultToFile(processedContent, file);
-        results.push({
-          inputFile: file,
-          outputFile,
-          success: true
-        });
+      const content = this.readTextFromFile(filename, inputPath);
+      if (!content) {
+        throw new Error('文件内容为空');
       }
 
-      totalBar.update(files.length, { status: '所有文件处理完成!' });
-      this.multibar.stop();
-      console.log(colors.green('\n✨ 处理完成!'));
-
-      return results;
+      const processedContent = await this.processWithPrompts(content);
+      const outputFile = this.writeResultToFile(processedContent, filename, outputPath);
+      
+      return {
+        inputFile: filename,
+        outputFile,
+        success: true
+      };
     } catch (error) {
-      this.multibar.stop();
-      console.error(colors.red('\n处理失败:'), error);
+      console.error(chalk.red('\n处理失败:'), error);
       throw error;
     }
   }

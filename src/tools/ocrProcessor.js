@@ -107,7 +107,7 @@ class OcrProcessor {
       console.log(`处理图片: ${path.basename(imagePath)}`);
       const ocrResult = await this.performOcr(imagePath);
       if (ocrResult) {
-        allText += ocrResult + '\n\n';
+        allText += ocrResult.replace(/^.*\.jpg:/m, '').trim() + '\n\n';
       }
     }
 
