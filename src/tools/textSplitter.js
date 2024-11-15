@@ -84,31 +84,34 @@ class TextSplitter {
    */
   extractTitleAndContent(content) {
     const { pattern, defaultTitle } = config.titleConfig;
-    const lines = content.split('\n').filter(line => line.trim()); // 过滤空行
-    if (lines.length === 0) {
+    // 保留原始行，包括空行
+    const allLines = content.split('\n');
+    // 只在查找标题时过滤空行
+    const nonEmptyLines = allLines.filter(line => line.trim());
+    
+    if (nonEmptyLines.length === 0) {
       return { title: defaultTitle, content: '' };
     }
 
     let title = defaultTitle;
-    let processedContent = content;
     let titleLineIndex = -1;
 
     // 先尝试查找 # 格式的标题
-    titleLineIndex = lines.findIndex(line => line.match(new RegExp(pattern, 'm')));
+    titleLineIndex = allLines.findIndex(line => line.match(new RegExp(pattern, 'm')));
     if (titleLineIndex !== -1) {
-      const match = lines[titleLineIndex].match(new RegExp(pattern, 'm'));
+      const match = allLines[titleLineIndex].match(new RegExp(pattern, 'm'));
       if (match && match[1]) {
         title = match[1].trim();
       }
     } else {
-      // 如果没找到 # 格式的标题，使用第一行作为标题
-      titleLineIndex = 0;
-      title = lines[0].trim();
+      // 如果没找到 # 格式的标题，使用第一个非空行作为标题
+      titleLineIndex = allLines.findIndex(line => line.trim());
+      title = allLines[titleLineIndex].trim();
     }
 
-    // 移除标题行并重新组合内容
-    lines.splice(titleLineIndex, 1);
-    processedContent = lines.join('\n').trim();
+    // 移除标题行但保留空行
+    allLines.splice(titleLineIndex, 1);
+    const processedContent = allLines.join('\n').trim();
     
     return { title, content: processedContent };
   }
