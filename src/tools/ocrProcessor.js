@@ -67,7 +67,7 @@ class OcrProcessor {
     try {
       const command = `ocrit "${imagePath}" -l zh-Hans -l en-US`;
       const { stdout } = await execPromise(command);
-      return stdout.trim().replace(/^.*\.jpg:/, '').trim();
+      return stdout.trim();
     } catch (error) {
       console.error(`OCR处理失败 ${imagePath}:`, error);
       return '';
