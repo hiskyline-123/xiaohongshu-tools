@@ -78,17 +78,44 @@ class TextSplitter {
   }
 
   /**
+   * 从文本内容中解析标题并返回处理后的内容
+   * @param {string} content - 文本内容
+   * @returns {Object} 包含标题和处理后内容的对象
+   */
+  extractTitleAndContent(content) {
+    const { pattern, defaultTitle } = config.titleConfig;
+    const lines = content.split('\n');
+    let title = defaultTitle;
+    let processedContent = content;
+
+    // 查找标题行
+    const titleLineIndex = lines.findIndex(line => line.match(new RegExp(pattern, 'm')));
+    if (titleLineIndex !== -1) {
+      const match = lines[titleLineIndex].match(new RegExp(pattern, 'm'));
+      if (match && match[1]) {
+        title = match[1].trim();
+        // 移除标题行并重新组合内容
+        lines.splice(titleLineIndex, 1);
+        processedContent = lines.join('\n').trim();
+      }
+    }
+    
+    return { title, content: processedContent };
+  }
+
+  /**
    * 将分割结果写入CSV文件
    * @param {Array} pages - 分页结果数组
    * @param {string} filename - 输出文件名
+   * @param {string} title - 文章标题
    */
-  async writeResultToCSV(pages, filename) {
+  async writeResultToCSV(pages, filename, title) {
     try {
       const outputPath = this.getOutputPath(filename);
       const csvContent = [
         config.csvHeaders.join(','), // 写入表头
         ...pages.map((content, index) => 
-          `${index + 1},"${content.replace(/"/g, '""')}"` // 处理内容中的双引号
+          `${index + 1},"${title.replace(/"/g, '""')}","${content.replace(/"/g, '""')}"` // 处理内容中的双引号
         )
       ].join('\n');
 
@@ -122,7 +149,7 @@ class TextSplitter {
         return text.length;
       }
       
-      // 在目标长度范围内寻找最佳分割点
+      // 在目标长度范围内寻找最分割点
       const searchEndPos = Math.min(text.length, targetLength + 50); // 向后多看50个字符
       const searchText = text.slice(0, searchEndPos);
       
@@ -201,7 +228,6 @@ class TextSplitter {
   async run(options = {}) {
     const { filename } = options;
     
-    // 如果没有指定文件名，则处理目录下所有文件
     if (!filename) {
       const allFiles = this.getInputFiles();
       console.log(`发现 ${allFiles.length} 个文件待处理:`, allFiles);
@@ -213,19 +239,21 @@ class TextSplitter {
             console.warn(`文件名 ${file} 不符合命名规范，但仍继续处理`);
           }
           
-          const content = this.readTextFromFile(file);
-          if (!content) {
+          const rawContent = this.readTextFromFile(file);
+          if (!rawContent) {
             console.warn(`文件 ${file} 内容为空，跳过处理`);
             continue;
           }
 
+          const { title, content } = this.extractTitleAndContent(rawContent);
           const pages = this.splitText(content, options);
           const outputFilename = this.generateOutputFilename(file);
-          await this.writeResultToCSV(pages, outputFilename);
+          await this.writeResultToCSV(pages, outputFilename, title);
           
           results.push({
             inputFile: file,
             outputFile: outputFilename,
+            title,
             pageCount: pages.length
           });
         } catch (error) {
@@ -235,23 +263,24 @@ class TextSplitter {
       return results;
     }
     
-    // 处理单个指定文件的情况
     if (!this.validateFilename(filename)) {
       console.warn(`文件名 ${filename} 不符合命名规范，但仍继续处理`);
     }
 
-    const content = this.readTextFromFile(filename);
-    if (!content) {
+    const rawContent = this.readTextFromFile(filename);
+    if (!rawContent) {
       throw new Error('文件内容为空');
     }
 
+    const { title, content } = this.extractTitleAndContent(rawContent);
     const pages = this.splitText(content, options);
     const outputFilename = this.generateOutputFilename(filename);
-    await this.writeResultToCSV(pages, outputFilename);
+    await this.writeResultToCSV(pages, outputFilename, title);
 
     return {
       inputFile: filename,
       outputFile: outputFilename,
+      title,
       pageCount: pages.length
     };
   }
