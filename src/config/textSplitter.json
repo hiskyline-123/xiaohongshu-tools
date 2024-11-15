@@ -1,5 +1,5 @@
 {
-  "defaultPageLength": 200,
+  "defaultPageLength": 180,
   "defaultFirstPageLength": 160,
   "minPageRatio": 0.7,
   "outputPrefix": "split_",
