@@ -55,6 +55,11 @@ class OcrProcessor {
         const ext = path.extname(file).toLowerCase();
         return this.supportedImageExts.includes(ext);
       })
+      .sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+        const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+        return numA - numB;
+      })
       .map(file => path.join(folderPath, file));
   }
 
