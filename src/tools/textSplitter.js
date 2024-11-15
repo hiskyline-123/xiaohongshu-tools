@@ -84,21 +84,31 @@ class TextSplitter {
    */
   extractTitleAndContent(content) {
     const { pattern, defaultTitle } = config.titleConfig;
-    const lines = content.split('\n');
+    const lines = content.split('\n').filter(line => line.trim()); // 过滤空行
+    if (lines.length === 0) {
+      return { title: defaultTitle, content: '' };
+    }
+
     let title = defaultTitle;
     let processedContent = content;
+    let titleLineIndex = -1;
 
-    // 查找标题行
-    const titleLineIndex = lines.findIndex(line => line.match(new RegExp(pattern, 'm')));
+    // 先尝试查找 # 格式的标题
+    titleLineIndex = lines.findIndex(line => line.match(new RegExp(pattern, 'm')));
     if (titleLineIndex !== -1) {
       const match = lines[titleLineIndex].match(new RegExp(pattern, 'm'));
       if (match && match[1]) {
         title = match[1].trim();
-        // 移除标题行并重新组合内容
-        lines.splice(titleLineIndex, 1);
-        processedContent = lines.join('\n').trim();
       }
+    } else {
+      // 如果没找到 # 格式的标题，使用第一行作为标题
+      titleLineIndex = 0;
+      title = lines[0].trim();
     }
+
+    // 移除标题行并重新组合内容
+    lines.splice(titleLineIndex, 1);
+    processedContent = lines.join('\n').trim();
     
     return { title, content: processedContent };
   }
