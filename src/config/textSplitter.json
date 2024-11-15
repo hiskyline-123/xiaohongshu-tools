@@ -1,0 +1,7 @@
+{
+  "defaultPageLength": 200,
+  "defaultFirstPageLength": 160,
+  "minPageRatio": 0.7,
+  "outputPrefix": "split_",
+  "csvHeaders": ["page", "content"]
+} 
