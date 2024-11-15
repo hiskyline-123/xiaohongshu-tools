@@ -112,9 +112,13 @@ class OcrToSplitWorkflow {
         this.copyToClipboard(path.join(__dirname, `../output/textSplitter/${result.outputFile}`));
       });
 
+      // 添加成功退出
+      process.exit(0);
+
     } catch (error) {
       console.error(chalk.red('\n工作流执行失败:'), error);
-      throw error;
+      // 添加失败退出
+      process.exit(1);
     }
   }
 }
