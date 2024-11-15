@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "clean:output": "rm -rf src/output/* !src/output/.gitkeep",
-    "clean:input": "rm -rf src/input/* !src/input/.gitkeep",
+    "clean:input": "rm -rf src/input/[!ocrProcessor]* && find src/input/ocrProcessor/* -not -name '.gitkeep' -delete",
     "workflow": "node src/workflows/index.js"
   },
   "keywords": [
