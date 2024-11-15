@@ -23,3 +23,6 @@ Thumbs.db
 # Output files
 output/*
 !output/.gitkeep
+
+# Config files
+src/config/textFlow.json
