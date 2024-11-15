@@ -40,6 +40,21 @@ class OcrToSplitWorkflow {
   }
 
   /**
+   * 清理input文件夹
+   */
+  async cleanInputFolders() {
+    try {
+      // 删除除ocrProcessor外的所有input文件夹内容
+      await execPromise('rm -rf src/input/[!ocrProcessor]*');
+      // 删除ocrProcessor文件夹下除.gitkeep外的所有文件
+      await execPromise('find src/input/ocrProcessor/* -not -name \'.gitkeep\' -delete');
+      console.log(chalk.green('\n已清理input文件夹'));
+    } catch (error) {
+      console.warn(chalk.yellow('清理input文件夹失败:', error.message));
+    }
+  }
+
+  /**
    * 执行工作流
    */
   async run() {
@@ -111,6 +126,9 @@ class OcrToSplitWorkflow {
         // 复制结果文件到剪贴板
         this.copyToClipboard(path.join(__dirname, `../output/textSplitter/${result.outputFile}`));
       });
+
+      // 清理input文件夹
+      await this.cleanInputFolders();
 
       // 添加成功退出
       process.exit(0);
