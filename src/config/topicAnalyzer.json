@@ -1,0 +1,7 @@
+{
+  "blacklist": ["#广告", "#软文"],
+  "whitelist": [],
+  "minTopicLength": 2,
+  "maxTopicLength": 10,
+  "mergedOutputPrefix": "merged_analysis_"
+} 

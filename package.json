@@ -1,0 +1,28 @@
+{
+  "name": "xiaohongshu-tools",
+  "version": "1.0.0",
+  "description": "A collection of utility tools for Xiaohongshu operations",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "clean:output": "rm -rf output/* !output/.gitkeep"
+  },
+  "keywords": [
+    "xiaohongshu",
+    "tools",
+    "utilities"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "csv-stringify": "^6.5.1",
+    "dotenv": "^16.3.1",
+    "inquirer": "^8.2.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
