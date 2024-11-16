@@ -144,76 +144,63 @@ class TextSplitter {
   /**
    * 分割文本内容
    * @param {string} content - 要分割的文本内容
-   * @param {Object} options - 分割选项
-   * @param {number} options.pageLength - 每页字符长度
-   * @param {number} options.firstPageLength - 第一页字符长度
    * @returns {Array} 分页后的文本数组
    */
-  splitText(content, options = {}) {
-    const pageLength = options.pageLength || config.defaultPageLength;
-    const firstPageLength = options.firstPageLength || config.defaultFirstPageLength;
-    const minPageLength = Math.floor(pageLength * 0.7); // 设置最小页面长度为目标长度的70%
+  splitText(content) {
+    const MAX_CHARS_PER_LINE = config.textSplitConfig.maxCharsPerLine;
+    const FIRST_PAGE_MAX_LINES = config.textSplitConfig.firstPageMaxLines;
+    const NORMAL_PAGE_MAX_LINES = config.textSplitConfig.normalPageMaxLines;
     
     const pages = [];
     let remainingText = content;
-    
-    // 分割文本的辅助函数
-    const findBestSplitPosition = (text, targetLength) => {
-      // 如果文本长度小于最小长度，直接返回文本长度
-      if (text.length <= minPageLength) {
-        return text.length;
-      }
-      
-      // 在目标长度范围内寻找最分割点
-      const searchEndPos = Math.min(text.length, targetLength + 50); // 向后多看50个字符
-      const searchText = text.slice(0, searchEndPos);
-      
-      // 按优先级寻找分割点
-      const sentenceEnds = searchText.match(/[。！？]/g); // 句子结束符
-      const commas = searchText.match(/[，；、]/g);       // 次级分隔符
-      
-      if (sentenceEnds && sentenceEnds.length > 0) {
-        // 找最后一个句号在目标长度范围内的位置
-        const lastPos = searchText.lastIndexOf(sentenceEnds[sentenceEnds.length - 1]);
-        if (lastPos >= minPageLength) {
-          return lastPos + 1;
-        }
-      }
-      
-      if (commas && commas.length > 0) {
-        // 找最后一个逗号在目标长度范围内的位置
-        const lastPos = searchText.lastIndexOf(commas[commas.length - 1]);
-        if (lastPos >= minPageLength) {
-          return lastPos + 1;
-        }
-      }
-      
-      // 如果没找到合适的分割点，就在目标长度处直接分割
-      return targetLength;
+
+    // 计算单个句子占用的行数
+    const calculateSentenceLines = (sentence) => {
+      if (sentence.trim() === '') return 1;
+      return Math.ceil(sentence.length / MAX_CHARS_PER_LINE);
     };
-    
-    // 处理第一页
-    if (remainingText.length > firstPageLength) {
-      const splitIndex = findBestSplitPosition(remainingText, firstPageLength);
-      pages.push(remainingText.slice(0, splitIndex).trim());
-      remainingText = remainingText.slice(splitIndex);
-    } else {
-      pages.push(remainingText.trim());
-      return pages;
-    }
-    
-    // 处理剩余页面
-    while (remainingText.length > 0) {
-      if (remainingText.length <= pageLength) {
-        pages.push(remainingText.trim());
-        break;
+
+    // 将文本按句子分割（以。！？为分隔符）
+    const splitIntoSentences = (text) => {
+      return text.match(/[^。！？]+[。！？]|[^。！？]+$/g) || [];
+    };
+
+    // 在不超过最大行数的情况下，找到最佳的分割点
+    const findBestSplit = (sentences, maxLines) => {
+      let currentLines = 0;
+      let currentContent = [];
+      
+      for (let i = 0; i < sentences.length; i++) {
+        const sentence = sentences[i];
+        const sentenceLines = calculateSentenceLines(sentence);
+        
+        if (currentLines + sentenceLines > maxLines) {
+          return currentContent.join('');
+        }
+        
+        currentLines += sentenceLines;
+        currentContent.push(sentence);
       }
       
-      const splitIndex = findBestSplitPosition(remainingText, pageLength);
-      pages.push(remainingText.slice(0, splitIndex).trim());
-      remainingText = remainingText.slice(splitIndex);
+      return currentContent.join('');
+    };
+
+    // 处理第一页
+    const firstPageSentences = splitIntoSentences(remainingText);
+    const firstPageContent = findBestSplit(firstPageSentences, FIRST_PAGE_MAX_LINES);
+    pages.push(firstPageContent.trim());
+    remainingText = remainingText.slice(firstPageContent.length);
+
+    // 处理后续页面
+    while (remainingText.trim().length > 0) {
+      const sentences = splitIntoSentences(remainingText);
+      const pageContent = findBestSplit(sentences, NORMAL_PAGE_MAX_LINES);
+      if (!pageContent) break;
+      
+      pages.push(pageContent.trim());
+      remainingText = remainingText.slice(pageContent.length);
     }
-    
+
     return pages;
   }
 
@@ -250,7 +237,7 @@ class TextSplitter {
       }
 
       const { title, content } = this.extractTitleAndContent(rawContent);
-      const pages = this.splitText(content, options);
+      const pages = this.splitText(content);
       const outputFilename = this.generateOutputFilename(filename);
       const finalOutputFile = await this.writeResultToCSV(pages, outputFilename, title, outputPath);
 

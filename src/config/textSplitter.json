@@ -1,11 +1,13 @@
 {
-  "defaultPageLength": 140,
-  "defaultFirstPageLength": 140,
-  "minPageRatio": 0.7,
   "outputPrefix": "split_",
   "csvHeaders": ["page", "title", "content"],
   "titleConfig": {
     "pattern": "^#\\s*(.+)$",
     "defaultTitle": "未命名文章"
+  },
+  "textSplitConfig": {
+    "maxCharsPerLine": 17,
+    "firstPageMaxLines": 13,
+    "normalPageMaxLines": 16
   }
 } 

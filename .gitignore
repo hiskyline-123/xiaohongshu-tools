@@ -21,8 +21,7 @@ npm-debug.log*
 Thumbs.db
 
 # Output files
-output/*
-!output/.gitkeep
+output/
 
 # Config files
 src/config/textFlow.json
